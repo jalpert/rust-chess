@@ -1,3 +1,5 @@
+// Jack Alpert 2020
+
 use crate::board::*;
 use std::iter;
 

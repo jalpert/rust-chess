@@ -1,3 +1,5 @@
+// Jack Alpert 2020
+
 use crate::board::path::*;
 use crate::board::piece::*;
 use itertools::iproduct;

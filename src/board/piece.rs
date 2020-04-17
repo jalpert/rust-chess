@@ -1,3 +1,5 @@
+// Jack Alpert 2020
+
 use crate::board::*;
 
 #[derive(Copy, Clone, PartialEq)]

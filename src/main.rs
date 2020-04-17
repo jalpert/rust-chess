@@ -1,3 +1,5 @@
+// Jack Alpert 2020
+
 use std::io::{self, BufRead};
 
 mod board;
