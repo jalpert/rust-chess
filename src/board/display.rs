@@ -1,13 +1,13 @@
 // Jack Alpert 2020
 
 use crate::board::*;
-use std::fmt::*;
-use ansi_term::Style;
-use ansi_term::Colour;
-
+use ansi_term::{Colour, Style};
+use std::fmt;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 impl Display for Color {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -20,7 +20,7 @@ impl Display for Color {
 }
 
 impl Display for Sign {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -34,7 +34,7 @@ impl Display for Sign {
 }
 
 impl Display for Piece {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "{}",
@@ -56,8 +56,30 @@ impl Display for Piece {
     }
 }
 
+impl FromStr for Piece {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, <Self as FromStr>::Err> {
+        match s.trim() {
+            "♙" => Ok(Piece(Pawn, White)),
+            "♟" => Ok(Piece(Pawn, Black)),
+            "♖" => Ok(Piece(Rook, White)),
+            "♜" => Ok(Piece(Rook, Black)),
+            "♘" => Ok(Piece(Knight, White)),
+            "♞" => Ok(Piece(Knight, Black)),
+            "♗" => Ok(Piece(Bishop, White)),
+            "♝" => Ok(Piece(Bishop, Black)),
+            "♕" => Ok(Piece(Queen, White)),
+            "♛" => Ok(Piece(Queen, Black)),
+            "♔" => Ok(Piece(King, White)),
+            "♚" => Ok(Piece(King, Black)),
+            _ => Err(String::from("Not a recognized piece")),
+        }
+    }
+}
+
 impl Display for Board {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         // Label each column with its appropriate index
         write!(f, "     1  2  3  4  5  6  7  8\n")?;
         for row in 0..8 {
@@ -72,12 +94,12 @@ impl Display for Board {
                 write!(
                     f,
                     "{}",
-                    Style::new().on(tile_color).paint(
-                        match self.get((row, col)) {
+                    Style::new()
+                        .on(tile_color)
+                        .paint(match self.get((row, col)) {
                             Some(p) => format!(" {} ", p),
                             None => format!("   "),
-                        }
-                    ),
+                        }),
                 )?;
             }
             // Add a new line for each row

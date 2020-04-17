@@ -1,10 +1,11 @@
+// Jack Alpert 2020
+
 use crate::board::path::*;
 use crate::board::*;
 
 impl Board {
-    
-    /** Returns true if PLAYER is in checkmate. False otherwise */
-    pub fn check_mate(&self, player: Option<Color>) -> bool {
+    /** Returns true if PLAYER has no valid moves. False otherwise */
+    pub fn has_no_moves(&self, player: Option<Color>) -> bool {
         for from in self.find_pieces(player) {
             for to in iproduct!(0..8, 0..8) {
                 if self.validate_move(from, to, player).is_ok() {
@@ -14,6 +15,7 @@ impl Board {
         }
         true
     }
+    
     
     /**
     Returns the number of squares that would be attacking a King at square
@@ -375,6 +377,6 @@ mod tests {
             .set((3, 7), Some(Piece(Bishop, Black)))
             .set((2, 6), Some(Piece(Rook, Black)));
         board.validate_move((0,4), (1,5), None).unwrap();
-        assert!(!board.check_mate(None));
+        assert!(!board.has_no_moves(None));
     }
 }

@@ -1,4 +1,7 @@
+// Jack Alpert 2020
+
 use crate::board::*;
+use std::str::FromStr;
 
 use rand::seq::SliceRandom;
 use rand::thread_rng;
@@ -69,14 +72,6 @@ impl Board {
             board.player()
         );
     }
-    // pub fn random(board: &Board, n_turns: u8) -> Board {
-    //     let mut result = Board::new();
-    //     for _ in 0..n_turns {
-    //         result = random_turn(&result);
-    //     }
-    //     result
-    //     (0..n_turns).fold(*board, |acc, _| random_turn(&acc))
-    // }
     // pub fn later_board() -> Board {
     //     let mut board = Board::empty(White, 25);
     //
@@ -95,4 +90,50 @@ impl Board {
     //         .set((3, 7), Some(Piece(Bishop, Black)))
     //         .set((2, 6), Some(Piece(Rook, Black)))
     // }
+}
+
+impl FromStr for Board {
+    type Err = String;
+
+    fn from_str(contents: &str) -> std::result::Result<Self, <Self as FromStr>::Err> {
+        let mut lines = contents.lines();
+        // Read the player
+        let player: Color = match lines.next() {
+            Some("White") => White,
+            Some("Black") => Black,
+            _ => return Err("Couldn't parse player!".to_string()),
+        };
+        //
+        // Read the turn number
+        let turn_no: u8 = lines
+            .next()
+            .map(|s| s.parse().ok())
+            .flatten()
+            .ok_or("Couldn't parse turn number!".to_string())?;
+        //
+        // Read the board setup
+        let (mut num_white_kings, mut num_black_kings) = (0, 0);
+        let mut data: [[Option<Piece>; 8]; 8] = [[None; 8]; 8];
+        for (line, row) in lines.zip(0..8) {
+            for (piece, col) in line.split_whitespace().zip(0..8) {
+                let piece = piece.parse().ok();
+                data[row][col] = piece;
+                if Some(Piece(King, White)) == piece {
+                    num_white_kings += 1;
+                } else if Some(Piece(King, Black)) == piece {
+                    num_black_kings += 1;
+                }
+            }
+        }
+
+        if (num_white_kings, num_black_kings) == (1, 1) {
+            Ok(Board {
+                player,
+                turn_no,
+                data,
+            })
+        } else {
+            Err(String::from("Wrong number of Kings on the board."))
+        }
+    }
 }

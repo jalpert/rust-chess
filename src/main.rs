@@ -1,5 +1,8 @@
 // Jack Alpert 2020
 
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
 use std::io::{self, BufRead};
 
 mod board;
@@ -12,6 +15,8 @@ enum UserInput {
     Undo,
     Yes,
     Random,
+    Save(String),
+    Load(String),
 }
 use UserInput::*;
 
@@ -19,14 +24,23 @@ fn main() {
     'main: loop {
         let mut board = Board::new();
         let mut history = Vec::new();
-        let winner: Color = 'game: loop {
+        let winner: Option<Color> = 'game: loop {
+            // Save the state of the game
+            if let Err(msg) = save_board(&board, "checkpoint.board") {
+                println!("{}", msg);
+            }
+            
             // Display the current state of the game
-            let num_checking = board.num_checking(board.find_king(None).expect("No King Found!"), None);
-            let check_mate = num_checking > 0 && board.check_mate(None);
+            let num_checking =
+                board.num_checking(board.find_king(None).expect("No King Found!"), None);
             //
             // Exit game loop if game is over
-            if check_mate {
-                break 'game board.player().other();
+            if board.has_no_moves(None) {
+                break 'game if num_checking > 0 {
+                    Some(board.player().other())
+                } else {
+                    None
+                }
             }
             println!("Turn: {}, {} to move.", board.turn(), board.player());
             if num_checking > 0 {
@@ -55,9 +69,25 @@ fn main() {
                     Some(Random) => {
                         history.push(board);
                         let (from, to) = Board::random_move(&board);
-                        println!("Moving {} to {} {}", board.get(from).unwrap(), to.0+1, to.1+1);
+                        println!(
+                            "Moving {} to {} {}",
+                            board.get(from).unwrap(),
+                            to.0 + 1,
+                            to.1 + 1
+                        );
                         board = board.execute_move(from, to);
-                        continue 'game
+                        continue 'game;
+                    }
+                    Some(Save(dest)) => match save_board(&board, &dest) {
+                        Ok(()) => continue 'game,
+                        Err(msg) => msg.to_string(),
+                    },
+                    Some(Load(src)) => match load_board(&src) {
+                        Ok(b) => {
+                            board = b;
+                            continue 'game;
+                        }
+                        Err(msg) => msg.to_string(),
                     },
                     Some(Yes) | None => String::from("Input not received in proper format."),
                 };
@@ -81,9 +111,25 @@ fn main() {
                     Some(Random) => {
                         history.push(board);
                         let (from, to) = Board::random_move(&board);
-                        println!("Moving {} to {} {}", board.get(from).unwrap(), to.0+1, to.1+1);
+                        println!(
+                            "Moving {} to {} {}",
+                            board.get(from).unwrap(),
+                            to.0 + 1,
+                            to.1 + 1
+                        );
                         board = board.execute_move(from, to);
-                        continue 'game
+                        continue 'game;
+                    }
+                    Some(Save(dest)) => match save_board(&board, &dest) {
+                        Ok(()) => continue 'game,
+                        Err(msg) => msg.to_string(),
+                    },
+                    Some(Load(src)) => match load_board(&src) {
+                        Ok(b) => {
+                            board = b;
+                            continue 'game;
+                        }
+                        Err(msg) => msg.to_string(),
                     },
                     Some(Yes) | None => String::from("Input not received in proper format."),
                 };
@@ -93,11 +139,14 @@ fn main() {
             // Execute the move
             history.push(board);
             board = board.execute_move(from, to);
-            
             // Make some space before the next move
             println!("\n\n");
         };
-        println!("{} wins!\n{}", winner, board);
+        if let Some(winner) = winner {
+            println!("{} wins!\n{}", winner, board);
+        } else {
+            println!("Stalemate. Nobody wins.\n{}", board);
+        }
         loop {
             println!("Play Again? Enter Yes (Y) or Quit (Q)");
             match parse_input() {
@@ -133,6 +182,10 @@ fn parse_input() -> Option<UserInput> {
         Some(Yes)
     } else if buffer == "u" || buffer == "U" {
         Some(Undo)
+    } else if buffer.starts_with("s") {
+        Some(Save(String::from(buffer.trim_start_matches('s').trim())))
+    } else if buffer.starts_with("l") {
+        Some(Load(String::from(buffer.trim_start_matches('l').trim())))
     } else {
         let mut iter = buffer.split_whitespace();
         let row: Option<isize> = iter.next().map(|row_str| row_str.parse().ok()).flatten();
@@ -144,4 +197,30 @@ fn parse_input() -> Option<UserInput> {
             None
         }
     }
+}
+
+// Write the current board to a file
+fn save_board(board: &Board, file_name: &str) -> io::Result<()> {
+    let mut buffer = File::create(file_name)?;
+
+    write!(buffer, "{}\n{}\n", board.player(), board.turn())?;
+    for row in 0..8 {
+        for col in 0..8 {
+            write!(
+                buffer,
+                "{}",
+                match board.get((row, col)) {
+                    Some(p) => format!(" {} ", p),
+                    None => format!(" _ "),
+                }
+            )?;
+        }
+        // Add a new line for each row
+        write!(buffer, "\n")?;
+    }
+    Ok(())
+}
+
+fn load_board(file_name: &str) -> Result<Board, String> {
+    fs::read_to_string(file_name).map_err(|err| err.to_string())?.parse()
 }
