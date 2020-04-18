@@ -191,8 +191,13 @@ impl Board {
         assert!(self.get(from).is_some());
         let mut new_board = *self; // make a copy
         new_board.set(from, None);
-        // TODO: Pawns become Queens on opposite row
-        new_board.set(to, self.get(from));
+        // Pawns become Queens on opposite row
+        let piece = match self.get(from) {
+            Some(Piece(Pawn, White)) if to.0 == 7 => Some(Piece(Queen, White)),
+            Some(Piece(Pawn, Black)) if to.0 == 0 => Some(Piece(Queen, Black)),
+            p => p,
+        };
+        new_board.set(to, piece);
         new_board.player = self.player.other();
         new_board.turn_no = self.turn_no + 1;
         new_board
